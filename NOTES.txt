@@ -1,3 +1,9 @@
+Most of this information is now at the Protocol Specification page at the bitcoin wiki:
+  https://en.bitcoin.it/wiki/Protocol_specification
+
+One of these days I might check this document against the wiki, add any missing information to the wiki, and remove the information below.
+
+
 Transaction dissection notes:
 -----------------------------
 
