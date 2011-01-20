@@ -118,16 +118,10 @@ def parse_WalletTx(vds):
     first = vds.read_string()
     second = vds.read_string()
     d['orderForm'].append( (first, second) )
-  # Versioning was messed up before bitcoin 0.3.14.04;
-  # nVersion is actually fTimeReceivedIsTxTime before then.
-  d['nVersion'] = vds.read_uint32()
+  d['fTimeReceivedIsTxTime'] = vds.read_boolean()
   d['timeReceived'] = vds.read_uint32()
   d['fromMe'] = vds.read_boolean()
   d['spent'] = vds.read_boolean()
-  if d['nVersion'] > 31404:
-    d['fTimeReceivedIsTxTime'] = vds.read_boolean()
-    d['fUnused'] = vds.read_boolean()
-    d['fromAccount'] = vds.read_string()
 
   return d
 

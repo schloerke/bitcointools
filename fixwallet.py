@@ -25,6 +25,10 @@ def main():
                     help="Look for files here (defaults to bitcoin default)")
   parser.add_option("--out", dest="outfile", default="walletNEW.dat",
                     help="Name of output file (default: walletNEW.dat)")
+  parser.add_option("--skipkey", dest="skipkey",
+                    help="Skip entries with keys that contain given string")
+  parser.add_option("--tweakspent", dest="tweakspent",
+                    help="Tweak transaction to mark unspent")
   (options, args) = parser.parse_args()
 
   if options.datadir is None:
@@ -41,7 +45,24 @@ def main():
     logging.error("Couldn't open "+DB_DIR)
     sys.exit(1)
 
-  rewrite_wallet(db_env, options.outfile)
+  if options.skipkey:
+    def pre_put_callback(type, data):
+      if options.skipkey in data['__key__']:
+        return False
+      return True
+    rewrite_wallet(db_env, options.outfile, pre_put_callback)
+  elif options.tweakspent:
+    txid = options.tweakspent.decode('hex_codec')[::-1]
+    def tweak_spent_callback(type, data):
+      if txid in data['__key__']:
+        import pdb
+        pdb.set_trace()
+        data['__value__'] = data['__value__'][:-1]+'\0'
+      return True
+    rewrite_wallet(db_env, options.outfile, tweak_spent_callback)
+    pass
+  else:
+    rewrite_wallet(db_env, options.outfile)
 
   db_env.close()
 

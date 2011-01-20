@@ -169,7 +169,7 @@ def dump_accounts(db_env):
 
   db.close()
 
-def rewrite_wallet(db_env, destFileName):
+def rewrite_wallet(db_env, destFileName, pre_put_callback=None):
   db = open_wallet(db_env)
 
   db_out = DB(db_env)
@@ -183,7 +183,8 @@ def rewrite_wallet(db_env, destFileName):
     sys.exit(1)
 
   def item_callback(type, d):
-    db_out.put(d["__key__"], d["__value__"])
+    if (pre_put_callback is None or pre_put_callback(type, d)):
+      db_out.put(d["__key__"], d["__value__"])
 
   parse_wallet(db, item_callback)
 
