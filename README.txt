@@ -1,3 +1,4 @@
+----- dbdump.py -----
 Run    dbdump.py --help    for usage.  Database files are opened read-only, but
 you might want to backup your Bitcoin wallet.dat file just in case.
 
@@ -26,3 +27,11 @@ Print out all blocks involving transactions to the Bitcoin Faucet:
 
 There's a special search term to look for non-standard transactions:
   dbdump.py --search-blocks=NONSTANDARD_CSCRIPTS
+
+----- statistics.py -----
+Scan all the transactions in the block chain and dump out a .csv file that shows transaction volume per month.
+
+----- fixwallet.py -----
+Half-baked utility that reads a wallet.dat and writes out a new wallet.dat.
+
+Only half-baked because to be really useful I'd have to write serialize routines to re-pack data after modifying it...

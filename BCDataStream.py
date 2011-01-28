@@ -26,6 +26,8 @@ class BCDataStream(object):
   def map_file(self, file, start):  # Initialize with bytes from file
     self.input = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
     self.read_cursor = start
+  def seek_file(self, position):
+    self.read_cursor = position
   def close_file(self):
     self.input.close()
 

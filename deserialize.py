@@ -129,11 +129,13 @@ def deserialize_WalletTx(d):
   result = deserialize_MerkleTx(d)
 
   result += "mapValue:"+str(d['mapValue'])
-  # One of these days I'll ask Satoshi what the orderForm stuff is/was for...
-  #  result += "\n"+" orderForm:"+str(d['orderForm'])
-  result += "\n"+"timeReceived:"+time.ctime(d['timeReceived'])+" fromMe:"+str(d['fromMe'])+" spent:"+str(d['spent'])
-  if d['nVersion'] > 31404:
-    result += "\n fromAccount: "+d['fromAccount']
+  if len(d['orderForm']) > 0:
+    result += "\n"+" orderForm:"+str(d['orderForm'])
+  try:
+    result += "\n"+"timeReceived:"+time.ctime(d['timeReceived'])
+  except ValueError:
+    result += "\n"+"timeReceived:"+str(d['timeReceived'])
+  result += " fromMe:"+str(d['fromMe'])+" spent:"+str(d['spent'])
   return result
 
 def parse_Block(vds):

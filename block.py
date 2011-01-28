@@ -101,8 +101,12 @@ def read_block(db_cursor, hash):
   block_data['hash256'] = hash
   return block_data
 
-def dump_block_n(datadir, db_env, block_number):
-  """ Dump a block given block number (== height, genesis block is 0)
+def scan_blocks(datadir, db_env, callback_fn):
+  """ Scan through blocks, from last through genesis block,
+      calling callback_fn(block_data) for each.
+      callback_fn should return False if scanning should
+      stop, True if it should continue.
+      Returns last block_data scanned.
   """
   db = _open_blkindex(db_env)
 
@@ -117,8 +121,20 @@ def dump_block_n(datadir, db_env, block_number):
 
   block_data = read_block(cursor, hashBestChain)
 
-  while block_data['nHeight'] > block_number:
+  while callback_fn(block_data):
+    if block_data['nHeight'] == 0:
+      break;
     block_data = read_block(cursor, block_data['hashPrev'])
+  return block_data
+
+
+def dump_block_n(datadir, db_env, block_number):
+  """ Dump a block given block number (== height, genesis block is 0)
+  """
+  def scan_callback(block_data):
+    return not block_data['nHeight'] == block_number
+
+  block_data = scan_blocks(datadir, db_env, scan_callback)
 
   print "Block height: "+str(block_data['nHeight'])
   _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'], block_data['hash256'], block_data['hashNext'])

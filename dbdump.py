@@ -11,16 +11,7 @@ from wallet import dump_wallet, dump_accounts
 from blkindex import dump_blkindex_summary
 from transaction import dump_transaction
 from block import dump_block, dump_block_n, search_blocks, check_block_chain
-
-def determine_db_dir():
-  import os
-  import os.path
-  import platform
-  if platform.system() == "Darwin":
-    return os.path.expanduser("~/Library/Application Support/Bitcoin/")
-  elif platform.system() == "Windows":
-    return os.path.join(os.environ['APPDATA'], "Bitcoin")
-  return os.path.expanduser("~/.bitcoin")
+from util import determine_db_dir
 
 def main():
   import optparse
