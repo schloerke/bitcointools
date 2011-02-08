@@ -10,7 +10,7 @@ import sys
 import time
 
 from BCDataStream import *
-from base58 import public_key_to_bc_address
+from base58 import public_key_to_bc_address, bc_address_to_hash_160, hash_160
 from util import short_hex, long_hex
 from deserialize import *
 
@@ -184,6 +184,47 @@ def rewrite_wallet(db_env, destFileName, pre_put_callback=None):
 
   def item_callback(type, d):
     if (pre_put_callback is None or pre_put_callback(type, d)):
+      db_out.put(d["__key__"], d["__value__"])
+
+  parse_wallet(db, item_callback)
+
+  db_out.close()
+  db.close()
+
+def trim_wallet(db_env, destFileName, pre_put_callback=None):
+  """Write out ONLY address book public/private keys
+     THIS WILL NOT WRITE OUT 'change' KEYS-- you should
+     send all of your bitcoins to one of your public addresses
+     before calling this.
+  """
+  db = open_wallet(db_env)
+  
+  pubkeys = []
+  def gather_pubkeys(type, d):
+    if type == "name":
+      pubkeys.append(bc_address_to_hash_160(d['hash']))
+  
+  parse_wallet(db, gather_pubkeys)
+
+  db_out = DB(db_env)
+  try:
+    r = db_out.open(destFileName, "main", DB_BTREE, DB_CREATE)
+  except DBError:
+    r = True
+
+  if r is not None:
+    logging.error("Couldn't open %s."%destFileName)
+    sys.exit(1)
+
+  def item_callback(type, d):
+    should_write = False
+    if type in [ 'version', 'name', 'acc' ]:
+      should_write = True
+    if type in [ 'key', 'wkey' ] and hash_160(d['public_key']) in pubkeys:
+      should_write = True
+    if pre_put_callback is not None:
+      should_write = pre_put_callback(type, d, pubkeys)
+    if should_write:
       db_out.put(d["__key__"], d["__value__"])
 
   parse_wallet(db, item_callback)

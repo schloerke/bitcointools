@@ -6,7 +6,7 @@ from bsddb.db import *
 import logging
 import sys
 
-from wallet import rewrite_wallet
+from wallet import rewrite_wallet, trim_wallet
 
 def determine_db_dir():
   import os
@@ -25,6 +25,8 @@ def main():
                     help="Look for files here (defaults to bitcoin default)")
   parser.add_option("--out", dest="outfile", default="walletNEW.dat",
                     help="Name of output file (default: walletNEW.dat)")
+  parser.add_option("--clean", action="store_true", dest="clean", default=False,
+                    help="Clean out old, spent change addresses and transactions")
   parser.add_option("--skipkey", dest="skipkey",
                     help="Skip entries with keys that contain given string")
   parser.add_option("--tweakspent", dest="tweakspent",
@@ -45,7 +47,10 @@ def main():
     logging.error("Couldn't open "+DB_DIR)
     sys.exit(1)
 
-  if options.skipkey:
+  if options.clean:
+    trim_wallet(db_env, options.outfile)
+
+  elif options.skipkey:
     def pre_put_callback(type, data):
       if options.skipkey in data['__key__']:
         return False
