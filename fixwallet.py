@@ -7,16 +7,7 @@ import logging
 import sys
 
 from wallet import rewrite_wallet
-
-def determine_db_dir():
-  import os
-  import os.path
-  import platform
-  if platform.system() == "Darwin":
-    return os.path.expanduser("~/Library/Application Support/Bitcoin/")
-  elif platform.system() == "Windows":
-    return os.path.join(os.environ['APPDATA'], "Bitcoin")
-  return os.path.expanduser("~/.bitcoin")
+from util import determine_db_dir
 
 def main():
   import optparse
