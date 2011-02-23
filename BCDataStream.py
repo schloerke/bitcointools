@@ -33,8 +33,8 @@ class BCDataStream(object):
 
   def read_string(self):
     # Strings are encoded depending on length:
-    # 0 to 253 :  1-byte-length followed by bytes (if any)
-    # 254 to 65,535 : byte'253' 2-byte-length followed by bytes
+    # 0 to 252 :  1-byte-length followed by bytes (if any)
+    # 253 to 65,535 : byte'253' 2-byte-length followed by bytes
     # 65,536 to 4,294,967,295 : byte '254' 4-byte-length followed by bytes
     # ... and the Bitcoin client is coded to understand:
     # greater than 4,294,967,295 : byte '255' 8-byte-length followed by bytes of string
