@@ -45,13 +45,13 @@ def main():
   else:
     db_dir = options.datadir
 
-  db_env = DBEnv(0)
-  r = db_env.open(db_dir,
-                  (DB_CREATE|DB_INIT_LOCK|DB_INIT_LOG|DB_INIT_MPOOL|
-                   DB_INIT_TXN|DB_THREAD|DB_RECOVER))
-
-  if r is not None:
-    logging.error("Couldn't open "+DB_DIR)
+  try:
+    db_env = DBEnv(0)
+    r = db_env.open(db_dir,
+                    (DB_CREATE|DB_INIT_LOCK|DB_INIT_LOG|DB_INIT_MPOOL|
+                     DB_INIT_TXN|DB_THREAD|DB_RECOVER))
+  except DBNoSuchFileError:
+    logging.error("Couldn't open " + db_dir)
     sys.exit(1)
 
   dump_tx = options.dump_wallet_tx
