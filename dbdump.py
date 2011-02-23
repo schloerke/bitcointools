@@ -11,7 +11,7 @@ from wallet import dump_wallet, dump_accounts
 from blkindex import dump_blkindex_summary
 from transaction import dump_transaction
 from block import dump_block, dump_block_n, search_blocks, check_block_chain
-from util import determine_db_dir
+from util import determine_db_dir, create_env
 
 def main():
   import optparse
@@ -45,13 +45,10 @@ def main():
   else:
     db_dir = options.datadir
 
-  db_env = DBEnv(0)
-  r = db_env.open(db_dir,
-                  (DB_CREATE|DB_INIT_LOCK|DB_INIT_LOG|DB_INIT_MPOOL|
-                   DB_INIT_TXN|DB_THREAD|DB_RECOVER))
-
-  if r is not None:
-    logging.error("Couldn't open "+DB_DIR)
+  try:
+    db_env = create_env(db_dir)
+  except DBNoSuchFileError:
+    logging.error("Couldn't open " + db_dir)
     sys.exit(1)
 
   dump_tx = options.dump_wallet_tx

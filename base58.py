@@ -60,7 +60,8 @@ try:
   # Python Crypto library is at: http://www.dlitz.net/software/pycrypto/
   # Needed for RIPEMD160 hash function, used to compute
   # Bitcoin addresses from internal public keys.
-  from Crypto.Hash import *
+  import Crypto.Hash.SHA256 as SHA256
+  import Crypto.Hash.RIPEMD160 as RIPEMD160
   have_crypto = True
 except ImportError:
   have_crypto = False

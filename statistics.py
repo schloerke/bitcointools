@@ -12,7 +12,7 @@ import sys
 from BCDataStream import *
 from block import scan_blocks
 from deserialize import parse_Block
-from util import determine_db_dir
+from util import determine_db_dir, create_env
 
 def main():
   import optparse
@@ -26,13 +26,10 @@ def main():
   else:
     db_dir = options.datadir
 
-  db_env = DBEnv(0)
-  r = db_env.open(db_dir,
-                  (DB_CREATE|DB_INIT_LOCK|DB_INIT_LOG|DB_INIT_MPOOL|
-                   DB_INIT_TXN|DB_THREAD|DB_RECOVER))
-
-  if r is not None:
-    logging.error("Couldn't open "+DB_DIR)
+  try:
+    db_env = create_env(db_dir)
+  except DBNoSuchFileError:
+    logging.error("Couldn't open " + db_dir)
     sys.exit(1)
 
   blockfile = open(os.path.join(db_dir, "blk%04d.dat"%(1,)), "rb")
