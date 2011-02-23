@@ -61,7 +61,10 @@ try:
   # Needed for RIPEMD160 hash function, used to compute
   # Bitcoin addresses from internal public keys.
   from Crypto.Hash import *
-  have_crypto = True
+  if 'SHA256' in globals() and 'RIPEMD160' in globals():
+    have_crypto = True
+  else:
+    have_crypto = False
 except ImportError:
   have_crypto = False
 
