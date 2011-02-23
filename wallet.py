@@ -94,6 +94,73 @@ def parse_wallet(db, item_callback):
       print("key data in hex: %s"%key.encode('hex_codec'))
       print("value data in hex: %s"%value.encode('hex_codec'))
   
+def update_wallet(db, type, data):
+  """Write a single item to the wallet.
+  db must be open with writable=True.
+  type and data are the type code and data dictionary as parse_wallet would
+  give to item_callback.
+  data's __key__, __value__ and __type__ are ignored; only the primary data
+  fields are used.
+  """
+  d = data
+  kds = BCDataStream()
+  vds = BCDataStream()
+
+  # Write the type code to the key
+  kds.write_string(type)
+  vds.write_string("")      # Ensure there is something
+
+  try:
+    if type == "tx":
+      raise NotImplementedError("Writing items of type 'tx'")
+      kds.write(d['tx_id'])
+      #d.update(parse_WalletTx(vds))
+    elif type == "name":
+      kds.write(d['hash'])
+      vds.write(d['name'])
+    elif type == "version":
+      vds.write_uint32(d['version'])
+    elif type == "setting":
+      raise NotImplementedError("Writing items of type 'setting'")
+      kds.write_string(d['setting'])
+      #d['value'] = parse_setting(d['setting'], vds)
+    elif type == "key":
+      kds.write_string(d['public_key'])
+      vds.write_string(d['private_key'])
+    elif type == "wkey":
+      kds.write_string(d['public_key'])
+      vds.write_string(d['private_key'])
+      vds.write_int64(d['created'])
+      vds.write_int64(d['expires'])
+      vds.write_string(d['comment'])
+    elif type == "defaultkey":
+      vds.write_string(d['key'])
+    elif type == "pool":
+      kds.write_int64(d['n'])
+      vds.write_int32(d['nVersion'])
+      vds.write_int64(d['nTime'])
+      vds.write_string(d['public_key'])
+    elif type == "acc":
+      kds.write_string(d['account'])
+      vds.write_int32(d['nVersion'])
+      vds.write_string(d['public_key'])
+    elif type == "acentry":
+      kds.write_string(d['account'])
+      kds.write_uint64(d['n'])
+      vds.write_int32(d['nVersion'])
+      vds.write_int64(d['nCreditDebit'])
+      vds.write_int64(d['nTime'])
+      vds.write_string(d['otherAccount'])
+      vds.write_string(d['comment'])
+    else:
+      print "Unknown key type: "+type
+
+    # Write the key/value pair to the database
+    db.put(kds.input, vds.input)
+
+  except Exception, e:
+    print("ERROR writing to wallet.dat, type %s"%type)
+    print("data dictionary: %r"%data)
 
 def dump_wallet(db_env, print_wallet, print_wallet_transactions, transaction_filter):
   db = open_wallet(db_env)

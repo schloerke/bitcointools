@@ -49,6 +49,11 @@ class BCDataStream(object):
 
     return self.read_bytes(length)
 
+  def write_string(self, string):
+    # Length-encoded as with read-string
+    self.write_compact_size(len(string))
+    self.write(string)
+
   def read_bytes(self, length):
     try:
       result = self.input[self.read_cursor:self.read_cursor+length]
@@ -67,6 +72,14 @@ class BCDataStream(object):
   def read_int64(self): return self._read_num('<q')
   def read_uint64(self): return self._read_num('<Q')
 
+  def write_boolean(self, val): return self.write('\1' if val else '\0')
+  def write_int16(self, val): return self._write_num('<h', val)
+  def write_uint16(self, val): return self._write_num('<H', val)
+  def write_int32(self, val): return self._write_num('<i', val)
+  def write_uint32(self, val): return self._write_num('<I', val)
+  def write_int64(self, val): return self._write_num('<q', val)
+  def write_uint64(self, val): return self._write_num('<Q', val)
+
   def read_compact_size(self):
     size = ord(self.input[self.read_cursor])
     self.read_cursor += 1
@@ -78,8 +91,23 @@ class BCDataStream(object):
       size = self._read_num('<Q')
     return size
 
+  def write_compact_size(self, size):
+    if size < 0:
+      raise SerializationError("attempt to write size < 0")
+    elif size < 253:
+       self.write(chr(size))
+    elif size < 2**16:
+      self._write_num('<H', size)
+    elif size < 2**32:
+      self._write_num('<I', size)
+    elif size < 2**64:
+      self._write_num('<Q', size)
+
   def _read_num(self, format):
     (i,) = struct.unpack_from(format, self.input, self.read_cursor)
     self.read_cursor += struct.calcsize(format)
     return i
 
+  def _write_num(self, format, num):
+    s = struct.pack(format, num)
+    self.write(s)
