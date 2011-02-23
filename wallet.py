@@ -14,10 +14,11 @@ from base58 import public_key_to_bc_address
 from util import short_hex, long_hex
 from deserialize import *
 
-def open_wallet(db_env):
+def open_wallet(db_env, writable=False):
   db = DB(db_env)
+  flags = DB_THREAD | (DB_CREATE if writable else DB_RDONLY)
   try:
-    r = db.open("wallet.dat", "main", DB_BTREE, DB_THREAD|DB_RDONLY)
+    r = db.open("wallet.dat", "main", DB_BTREE, flags)
   except DBError:
     r = True
 
