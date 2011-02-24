@@ -108,7 +108,7 @@ def update_wallet(db, type, data):
 
   # Write the type code to the key
   kds.write_string(type)
-  vds.write_string("")      # Ensure there is something
+  vds.write("")             # Ensure there is something
 
   try:
     if type == "tx":
