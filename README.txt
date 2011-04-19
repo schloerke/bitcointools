@@ -35,3 +35,8 @@ Scan all the transactions in the block chain and dump out a .csv file that shows
 Half-baked utility that reads a wallet.dat and writes out a new wallet.dat.
 
 Only half-baked because to be really useful I'd have to write serialize routines to re-pack data after modifying it...
+
+----- jsonToCSV.py -----
+Read JSON list-of-objects from standard input, writes CSV file to standard output.
+Useful for converting bitcoind's listtransactions output to CSV that can be
+imported into a spreadsheet.
