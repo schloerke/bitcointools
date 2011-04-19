@@ -48,8 +48,6 @@ def main():
     txid = options.tweakspent.decode('hex_codec')[::-1]
     def tweak_spent_callback(type, data):
       if txid in data['__key__']:
-        import pdb
-        pdb.set_trace()
         data['__value__'] = data['__value__'][:-1]+'\0'
       return True
     rewrite_wallet(db_env, options.outfile, tweak_spent_callback)

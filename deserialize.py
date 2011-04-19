@@ -41,7 +41,7 @@ def parse_TxIn(vds):
   d['scriptSig'] = vds.read_bytes(vds.read_compact_size())
   d['sequence'] = vds.read_uint32()
   return d
-def deserialize_TxIn(d, transaction_index=None):
+def deserialize_TxIn(d, transaction_index=None, owner_keys=None):
   if d['prevout_hash'] == "\x00"*32:
     result = "TxIn: COIN GENERATED"
     result += " coinbase:"+d['scriptSig'].encode('hex_codec')
@@ -62,11 +62,15 @@ def parse_TxOut(vds):
   d['value'] = vds.read_int64()
   d['scriptPubKey'] = vds.read_bytes(vds.read_compact_size())
   return d
-def deserialize_TxOut(d):
+
+def deserialize_TxOut(d, owner_keys=None):
   result =  "TxOut: value: %f"%(d['value']/1.0e8,)
   pk = extract_public_key(d['scriptPubKey'])
   result += " pubkey: "+pk
   result += " Script: "+decode_script(d['scriptPubKey'])
+  if owner_keys is not None:
+    if pk in owner_keys: result += " Own: True"
+    else: result += " Own: False"
   return result
 
 def parse_Transaction(vds):
@@ -82,12 +86,12 @@ def parse_Transaction(vds):
     d['txOut'].append(parse_TxOut(vds))
   d['lockTime'] = vds.read_uint32()
   return d
-def deserialize_Transaction(d, transaction_index=None):
+def deserialize_Transaction(d, transaction_index=None, owner_keys=None):
   result = "%d tx in, %d out\n"%(len(d['txIn']), len(d['txOut']))
   for txIn in d['txIn']:
     result += deserialize_TxIn(txIn, transaction_index) + "\n"
   for txOut in d['txOut']:
-    result += deserialize_TxOut(txOut) + "\n"
+    result += deserialize_TxOut(txOut, owner_keys) + "\n"
   return result
 
 def parse_MerkleTx(vds):
@@ -98,8 +102,8 @@ def parse_MerkleTx(vds):
   d['nIndex'] = vds.read_int32()
   return d
 
-def deserialize_MerkleTx(d, transaction_index=None):
-  result = deserialize_Transaction(d, transaction_index)
+def deserialize_MerkleTx(d, transaction_index=None, owner_keys=None):
+  result = deserialize_Transaction(d, transaction_index, owner_keys)
   result = "Merkle hashBlock: "+short_hex(d['hashBlock'][::-1])+"\n" + result
   return result
 
@@ -129,8 +133,8 @@ def parse_WalletTx(vds):
 
   return d
 
-def deserialize_WalletTx(d, transaction_index=None):
-  result = deserialize_MerkleTx(d, transaction_index)
+def deserialize_WalletTx(d, transaction_index=None, owner_keys=None):
+  result = deserialize_MerkleTx(d, transaction_index, owner_keys)
 
   result += "mapValue:"+str(d['mapValue'])
   if len(d['orderForm']) > 0:

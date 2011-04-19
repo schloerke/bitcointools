@@ -4,7 +4,6 @@
 
 from bsddb.db import *
 import logging
-import pdb
 import re
 import sys
 import time
@@ -167,43 +166,50 @@ def dump_wallet(db_env, print_wallet, print_wallet_transactions, transaction_fil
 
   wallet_transactions = []
   transaction_index = { }
+  owner_keys = { }
 
   def item_callback(type, d):
     if type == "tx":
       wallet_transactions.append( d )
       transaction_index[d['tx_id']] = d
-    elif print_wallet:
-      if type == "name":
-        print("ADDRESS "+d['hash']+" : "+d['name'])
-      elif type == "version":
-        print("Version: %d"%(d['version'],))
-      elif type == "setting":
-        print(d['setting']+": "+str(d['value']))
-      elif type == "key":
-        print("PubKey "+ short_hex(d['public_key']) + " " + public_key_to_bc_address(d['public_key']) +
-              ": PriKey "+ short_hex(d['private_key']))
-      elif type == "wkey":
-        print("WPubKey 0x"+ short_hex(d['public_key']) + " " + public_key_to_bc_address(d['public_key']) +
-              ": WPriKey 0x"+ short_hex(d['private_key']))
-        print(" Created: "+time.ctime(d['created'])+" Expires: "+time.ctime(d['expires'])+" Comment: "+d['comment'])
-      elif type == "defaultkey":
-        print("Default Key: 0x"+ short_hex(d['key']) + " " + public_key_to_bc_address(d['key']))
-      elif type == "pool":
-        print("Change Pool key %d: %s (Time: %s)"% (d['n'], public_key_to_bc_address(d['public_key']), time.ctime(d['nTime'])))
-      elif type == "acc":
-        print("Account %s (current key: %s)"%(d['account'], public_key_to_bc_address(d['public_key'])))
-      elif type == "acentry":
-        print("Move '%s' %d (other: '%s', time: %s, entry %d) %s"%
-              (d['account'], d['nCreditDebit'], d['otherAccount'], time.ctime(d['nTime']), d['n'], d['comment']))
-      else:
-        print "Unknown key type: "+type
+    elif type == "key":
+      owner_keys[public_key_to_bc_address(d['public_key'])] = d['private_key']
+
+    if not print_wallet:
+      return
+    if type == "tx":
+      return
+    elif type == "name":
+      print("ADDRESS "+d['hash']+" : "+d['name'])
+    elif type == "version":
+      print("Version: %d"%(d['version'],))
+    elif type == "setting":
+      print(d['setting']+": "+str(d['value']))
+    elif type == "key":
+      print("PubKey "+ short_hex(d['public_key']) + " " + public_key_to_bc_address(d['public_key']) +
+            ": PriKey "+ short_hex(d['private_key']))
+    elif type == "wkey":
+      print("WPubKey 0x"+ short_hex(d['public_key']) + " " + public_key_to_bc_address(d['public_key']) +
+            ": WPriKey 0x"+ short_hex(d['private_key']))
+      print(" Created: "+time.ctime(d['created'])+" Expires: "+time.ctime(d['expires'])+" Comment: "+d['comment'])
+    elif type == "defaultkey":
+      print("Default Key: 0x"+ short_hex(d['key']) + " " + public_key_to_bc_address(d['key']))
+    elif type == "pool":
+      print("Change Pool key %d: %s (Time: %s)"% (d['n'], public_key_to_bc_address(d['public_key']), time.ctime(d['nTime'])))
+    elif type == "acc":
+      print("Account %s (current key: %s)"%(d['account'], public_key_to_bc_address(d['public_key'])))
+    elif type == "acentry":
+      print("Move '%s' %d (other: '%s', time: %s, entry %d) %s"%
+            (d['account'], d['nCreditDebit'], d['otherAccount'], time.ctime(d['nTime']), d['n'], d['comment']))
+    else:
+      print "Unknown key type: "+type
 
   parse_wallet(db, item_callback)
 
   if print_wallet_transactions:
     keyfunc = lambda i: i['timeReceived']
     for d in sorted(wallet_transactions, key=keyfunc):
-      tx_value = deserialize_WalletTx(d, transaction_index)
+      tx_value = deserialize_WalletTx(d, transaction_index, owner_keys)
       if len(transaction_filter) > 0 and re.search(transaction_filter, tx_value) is None: continue
 
       print("==WalletTransaction== "+long_hex(d['tx_id'][::-1]))

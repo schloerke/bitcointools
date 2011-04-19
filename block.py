@@ -178,10 +178,6 @@ def search_odd_scripts(datadir, cursor, block_data):
     block_string = _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'],
                                block_data['hash256'], block_data['hashNext'], False)
     
-    import pdb
-    if block_data['nHeight'] == 71036:
-      pdb.set_trace()
-
     found_nonstandard = False
     for m in re.finditer(r'TxIn:(.*?)$', block_string, re.MULTILINE):
       s = m.group(1)
