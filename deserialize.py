@@ -140,12 +140,15 @@ def deserialize_WalletTx(d):
 
 def parse_Block(vds):
   d = {}
+  header_start = vds.read_cursor
   d['version'] = vds.read_int32()
   d['hashPrev'] = vds.read_bytes(32)
   d['hashMerkleRoot'] = vds.read_bytes(32)
   d['nTime'] = vds.read_uint32()
   d['nBits'] = vds.read_uint32()
   d['nNonce'] = vds.read_uint32()
+  header_end = vds.read_cursor
+  d['__header__'] = vds.input[header_start:header_end]
   d['transactions'] = []
   nTransactions = vds.read_compact_size()
   for i in xrange(nTransactions):
@@ -161,6 +164,7 @@ def deserialize_Block(d):
   result += "\n%d transactions:\n"%len(d['transactions'])
   for t in d['transactions']:
     result += deserialize_Transaction(t)+"\n"
+  result += "\nRaw block header: "+d['__header__'].encode('hex_codec')
   return result
 
 opcodes = Enumeration("Opcodes", [

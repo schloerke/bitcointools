@@ -53,12 +53,15 @@ def _parse_block_index(vds):
   d['nBlockPos'] = vds.read_uint32()
   d['nHeight'] = vds.read_int32()
 
+  header_start = vds.read_cursor
   d['b_version'] = vds.read_int32()
   d['hashPrev'] = vds.read_bytes(32)
   d['hashMerkle'] = vds.read_bytes(32)
   d['nTime'] = vds.read_int32()
   d['nBits'] = vds.read_int32()
   d['nNonce'] = vds.read_int32()
+  header_end = vds.read_cursor
+  d['__header__'] = vds.input[header_start:header_end]
   return d
 
 def dump_block(datadir, db_env, block_hash):
