@@ -201,8 +201,8 @@ def dump_wallet(db_env, print_wallet, print_wallet_transactions, transaction_fil
   parse_wallet(db, item_callback)
 
   if print_wallet_transactions:
-    sortfunc = lambda t1, t2: t1['timeReceived'] < t2['timeReceived']
-    for d in sorted(wallet_transactions, cmp=sortfunc):
+    keyfunc = lambda i: i['timeReceived']
+    for d in sorted(wallet_transactions, key=keyfunc):
       tx_value = deserialize_WalletTx(d, transaction_index)
       if len(transaction_filter) > 0 and re.search(transaction_filter, tx_value) is None: continue
 
