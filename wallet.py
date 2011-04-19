@@ -166,10 +166,12 @@ def dump_wallet(db_env, print_wallet, print_wallet_transactions, transaction_fil
   db = open_wallet(db_env)
 
   wallet_transactions = []
+  transaction_index = { }
 
   def item_callback(type, d):
     if type == "tx":
       wallet_transactions.append( d )
+      transaction_index[d['tx_id']] = d
     elif print_wallet:
       if type == "name":
         print("ADDRESS "+d['hash']+" : "+d['name'])
@@ -201,7 +203,7 @@ def dump_wallet(db_env, print_wallet, print_wallet_transactions, transaction_fil
   if print_wallet_transactions:
     sortfunc = lambda t1, t2: t1['timeReceived'] < t2['timeReceived']
     for d in sorted(wallet_transactions, cmp=sortfunc):
-      tx_value = deserialize_WalletTx(d)
+      tx_value = deserialize_WalletTx(d, transaction_index)
       if len(transaction_filter) > 0 and re.search(transaction_filter, tx_value) is None: continue
 
       print("==WalletTransaction== "+long_hex(d['tx_id'][::-1]))

@@ -41,10 +41,15 @@ def parse_TxIn(vds):
   d['scriptSig'] = vds.read_bytes(vds.read_compact_size())
   d['sequence'] = vds.read_uint32()
   return d
-def deserialize_TxIn(d):
+def deserialize_TxIn(d, transaction_index=None):
   if d['prevout_hash'] == "\x00"*32:
     result = "TxIn: COIN GENERATED"
     result += " coinbase:"+d['scriptSig'].encode('hex_codec')
+  elif transaction_index is not None and d['prevout_hash'] in transaction_index:
+    p = transaction_index[d['prevout_hash']]['txOut'][d['prevout_n']]
+    result = "TxIn: value: %f"%(p['value']/1.0e8,)
+    pk = extract_public_key(p['scriptPubKey'])
+    result += " pubkey: "+pk
   else:
     result = "TxIn: prev("+long_hex(d['prevout_hash'][::-1])+":"+str(d['prevout_n'])+")"
     pk = extract_public_key(d['scriptSig'])
@@ -59,7 +64,7 @@ def parse_TxOut(vds):
   d['scriptPubKey'] = vds.read_bytes(vds.read_compact_size())
   return d
 def deserialize_TxOut(d):
-  result =  "TxOut: value: %.2f"%(d['value']/1.0e8,)
+  result =  "TxOut: value: %f"%(d['value']/1.0e8,)
   pk = extract_public_key(d['scriptPubKey'])
   result += " pubkey: "+pk
   result += " Script: "+decode_script(d['scriptPubKey'])
@@ -78,10 +83,10 @@ def parse_Transaction(vds):
     d['txOut'].append(parse_TxOut(vds))
   d['lockTime'] = vds.read_uint32()
   return d
-def deserialize_Transaction(d):
+def deserialize_Transaction(d, transaction_index=None):
   result = "%d tx in, %d out\n"%(len(d['txIn']), len(d['txOut']))
   for txIn in d['txIn']:
-    result += deserialize_TxIn(txIn) + "\n"
+    result += deserialize_TxIn(txIn, transaction_index) + "\n"
   for txOut in d['txOut']:
     result += deserialize_TxOut(txOut) + "\n"
   return result
@@ -94,8 +99,8 @@ def parse_MerkleTx(vds):
   d['nIndex'] = vds.read_int32()
   return d
 
-def deserialize_MerkleTx(d):
-  result = deserialize_Transaction(d)
+def deserialize_MerkleTx(d, transaction_index=None):
+  result = deserialize_Transaction(d, transaction_index)
   result = "Merkle hashBlock: "+short_hex(d['hashBlock'][::-1])+"\n" + result
   return result
 
@@ -118,23 +123,20 @@ def parse_WalletTx(vds):
     first = vds.read_string()
     second = vds.read_string()
     d['orderForm'].append( (first, second) )
-  d['fTimeReceivedIsTxTime'] = vds.read_boolean()
+  d['fTimeReceivedIsTxTime'] = vds.read_uint32()
   d['timeReceived'] = vds.read_uint32()
   d['fromMe'] = vds.read_boolean()
   d['spent'] = vds.read_boolean()
 
   return d
 
-def deserialize_WalletTx(d):
-  result = deserialize_MerkleTx(d)
+def deserialize_WalletTx(d, transaction_index=None):
+  result = deserialize_MerkleTx(d, transaction_index)
 
   result += "mapValue:"+str(d['mapValue'])
   if len(d['orderForm']) > 0:
     result += "\n"+" orderForm:"+str(d['orderForm'])
-  try:
-    result += "\n"+"timeReceived:"+time.ctime(d['timeReceived'])
-  except ValueError:
-    result += "\n"+"timeReceived:"+str(d['timeReceived'])
+  result += "\n"+"timeReceived:"+time.ctime(d['timeReceived'])
   result += " fromMe:"+str(d['fromMe'])+" spent:"+str(d['spent'])
   return result
 
