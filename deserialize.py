@@ -103,9 +103,10 @@ def parse_MerkleTx(vds):
   return d
 
 def deserialize_MerkleTx(d, transaction_index=None, owner_keys=None):
-  result = deserialize_Transaction(d, transaction_index, owner_keys)
-  result = "Merkle hashBlock: "+short_hex(d['hashBlock'][::-1])+"\n" + result
-  return result
+  tx = deserialize_Transaction(d, transaction_index, owner_keys)
+  result = "block: "+(d['hashBlock'][::-1]).encode('hex_codec')
+  result += " %d hashes in merkle branch\n"%(len(d['merkleBranch'])/32,)
+  return result+tx
 
 def parse_WalletTx(vds):
   d = parse_MerkleTx(vds)
@@ -135,7 +136,7 @@ def parse_WalletTx(vds):
 
 def deserialize_WalletTx(d, transaction_index=None, owner_keys=None):
   result = deserialize_MerkleTx(d, transaction_index, owner_keys)
-
+  result += "%d vtxPrev txns\n"%(len(d['vtxPrev']),)
   result += "mapValue:"+str(d['mapValue'])
   if len(d['orderForm']) > 0:
     result += "\n"+" orderForm:"+str(d['orderForm'])
