@@ -5,6 +5,7 @@
 from BCDataStream import *
 from enumeration import Enumeration
 from base58 import public_key_to_bc_address, hash_160_to_bc_address
+import hashlib
 import socket
 import time
 from util import short_hex, long_hex
@@ -41,6 +42,7 @@ def parse_TxIn(vds):
   d['scriptSig'] = vds.read_bytes(vds.read_compact_size())
   d['sequence'] = vds.read_uint32()
   return d
+
 def deserialize_TxIn(d, transaction_index=None, owner_keys=None):
   if d['prevout_hash'] == "\x00"*32:
     result = "TxIn: COIN GENERATED"
@@ -75,6 +77,7 @@ def deserialize_TxOut(d, owner_keys=None):
 
 def parse_Transaction(vds):
   d = {}
+  start = vds.read_cursor
   d['version'] = vds.read_int32()
   n_vin = vds.read_compact_size()
   d['txIn'] = []
@@ -85,7 +88,11 @@ def parse_Transaction(vds):
   for i in xrange(n_vout):
     d['txOut'].append(parse_TxOut(vds))
   d['lockTime'] = vds.read_uint32()
+  end = vds.read_cursor
+  hash = hashlib.sha256(hashlib.sha256(vds.input[start:end]).digest()).hexdigest()
+  d['hash'] = "".join(reversed([hash[i:i + 2] for i in range(0, len(hash), 2)]))
   return d
+
 def deserialize_Transaction(d, transaction_index=None, owner_keys=None):
   result = "%d tx in, %d out\n"%(len(d['txIn']), len(d['txOut']))
   for txIn in d['txIn']:
@@ -159,7 +166,6 @@ def parse_Block(vds):
   nTransactions = vds.read_compact_size()
   for i in xrange(nTransactions):
     d['transactions'].append(parse_Transaction(vds))
-
   return d
   
 def deserialize_Block(d):
