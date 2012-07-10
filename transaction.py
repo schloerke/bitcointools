@@ -82,17 +82,20 @@ def dump_all_transactions(datadir, db_env):
     block_datetime = datetime.fromtimestamp(data['nTime'])
     dt = "%d-%02d-%02d-%02d-%02d-%02d"%(block_datetime.year, block_datetime.month, block_datetime.day, block_datetime.hour, block_datetime.minute, block_datetime.second)
     for txn in data['transactions']:
-      for txIn in txn['txIn']:
-        if txIn['prevout_hash'] == "\x00"*32:
-          print 'in\t' + txn['hash'] + '\tcoinbase\t' + dt 
-        else:
-          pk = extract_public_key(txIn['scriptSig'])
-          print 'in\t' + txn['hash'] + '\t' + long_hex(txIn['prevout_hash'][::-1]) + '\t' + str(txIn['prevout_n']) + '\t' + pk + '\t' + dt 
-      index = 0
-      for txOut in txn['txOut']:
-        pk = extract_public_key(txOut['scriptPubKey'])
-        print 'out\t' + txn['hash'] + '\t' + str(index) + '\t' + pk + '\t' + str(txOut['value']/1.0e8) + '\t' + dt 
-        index += 1
+      try:
+        for txIn in txn['txIn']:
+          if txIn['prevout_hash'] == "\x00"*32:
+            print 'in\t' + txn['hash'] + '\tcoinbase\t' + dt 
+          else:
+            pk = extract_public_key(txIn['scriptSig'])
+            print 'in\t' + txn['hash'] + '\t' + long_hex(txIn['prevout_hash'][::-1]) + '\t' + str(txIn['prevout_n']) + '\t' + pk + '\t' + dt 
+        index = 0
+        for txOut in txn['txOut']:
+          pk = extract_public_key(txOut['scriptPubKey'])
+          print 'out\t' + txn['hash'] + '\t' + str(index) + '\t' + pk + '\t' + str(txOut['value']/1.0e8) + '\t' + dt 
+          index += 1
+      except:
+        pass
     return True
   scan_blocks(datadir, db_env, for_each_block)
   db_env.close()
