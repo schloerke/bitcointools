@@ -8,7 +8,7 @@ __b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 __b58base = len(__b58chars)
 
 def b58encode(v):
-  """ encode v, which is a string of bytes, to base58.    
+  """ encode v, which is a string of bytes, to base58.
   """
 
   long_value = 0L
@@ -56,15 +56,14 @@ def b58decode(v, length):
 
   return result
 
-try:
-  # Python Crypto library is at: http://www.dlitz.net/software/pycrypto/
-  # Needed for RIPEMD160 hash function, used to compute
-  # Bitcoin addresses from internal public keys.
-  import Crypto.Hash.SHA256 as SHA256
-  import Crypto.Hash.RIPEMD160 as RIPEMD160
-  have_crypto = True
-except ImportError:
-  have_crypto = False
+
+# Python Crypto library is at: http://www.dlitz.net/software/pycrypto/
+# Needed for RIPEMD160 hash function, used to compute
+# Bitcoin addresses from internal public keys.
+import Crypto.Hash.SHA256 as SHA256
+import Crypto.Hash.RIPEMD as RIPEMD160
+have_crypto = True
+# make sure it errors out if it doesn't have crypto... Install it!
 
 def hash_160(public_key):
   if not have_crypto:
