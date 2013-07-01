@@ -253,6 +253,10 @@ def match_decoded(decoded, to_match):
   return True
 
 def extract_public_key(bytes):
+  if len(bytes) == 0:
+    ## if there is nothing to extract, then there is nothing
+    return "(None)"
+
   decoded = [ x for x in script_GetOp(bytes) ]
 
   # non-generated TxIn transactions push a signature
