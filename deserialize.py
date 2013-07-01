@@ -167,7 +167,7 @@ def parse_Block(vds):
   for i in xrange(nTransactions):
     d['transactions'].append(parse_Transaction(vds))
   return d
-  
+
 def deserialize_Block(d):
   result = "Time: "+time.ctime(d['nTime'])+" Nonce: "+str(d['nNonce'])
   result += "\nnBits: 0x"+hex(d['nBits'])
@@ -237,7 +237,8 @@ def decode_script(bytes):
     if len(result) > 0: result += " "
     if opcode <= opcodes.OP_PUSHDATA4:
       result += "%d:"%(opcode,)
-      result += short_hex(vch)
+      # result += short_hex(vch)
+      result += long_hex(vch)
     else:
       result += script_GetOpName(opcode)
   return result
