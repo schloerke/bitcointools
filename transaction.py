@@ -93,7 +93,7 @@ def dump_all_transactions(datadir, db_env):
                 pk = extract_public_key(txIn['scriptSig'])
                 print 'in\t' + txn['hash'] + '\t' + long_hex(txIn['prevout_hash'][::-1]) + '\t' + str(txIn['prevout_n']) + '\t' + pk + '\t' + dt
             except Exception, err:
-              print 'error_txIn\t' + str(block_data['nHeight']) + '\t' + str(err) + '\t' + str(txnIn) + '\t' + str(txn)
+              print 'error_txIn\t' + str(block_data['nHeight']) + '\t' + str(err) + '\t' + str(txIn) + '\t' + str(txn)
           index = 0
           for txOut in txn['txOut']:
             try:
