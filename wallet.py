@@ -24,7 +24,7 @@ def open_wallet(db_env, writable=False):
   if r is not None:
     logging.error("Couldn't open wallet.dat/main. Try quitting Bitcoin and running this again.")
     sys.exit(1)
-  
+
   return db
 
 def parse_wallet(db, item_callback):
@@ -37,11 +37,16 @@ def parse_wallet(db, item_callback):
     kds.clear(); kds.write(key)
     vds.clear(); vds.write(value)
 
-    type = kds.read_string()
+    try:
+      type = kds.read_string()
 
-    d["__key__"] = key
-    d["__value__"] = value
-    d["__type__"] = type
+      d["__key__"] = key
+      d["__value__"] = value
+      d["__type__"] = type
+
+    except Exception, e:
+      print("ERROR attempting to read data from wallet.dat, type %s"%type)
+      continue
 
     try:
       if type == "tx":
@@ -64,6 +69,16 @@ def parse_wallet(db, item_callback):
         d['created'] = vds.read_int64()
         d['expires'] = vds.read_int64()
         d['comment'] = vds.read_string()
+      elif type == "ckey":
+        d['public_key'] = kds.read_bytes(kds.read_compact_size())
+        d['crypted_key'] = vds.read_bytes(vds.read_compact_size())
+      elif type == "mkey":
+        d['nID'] = kds.read_int32()
+        d['crypted_key'] = vds.read_bytes(vds.read_compact_size())
+        d['salt'] = vds.read_bytes(vds.read_compact_size())
+        d['nDerivationMethod'] = vds.read_int32()
+        d['nDeriveIterations'] = vds.read_int32()
+        d['vchOtherDerivationParameters'] = vds.read_bytes(vds.read_compact_size())
       elif type == "defaultkey":
         d['key'] = vds.read_bytes(vds.read_compact_size())
       elif type == "pool":
@@ -83,16 +98,23 @@ def parse_wallet(db, item_callback):
         d['nTime'] = vds.read_int64()
         d['otherAccount'] = vds.read_string()
         d['comment'] = vds.read_string()
+      elif type == "bestblock":
+        d['nVersion'] = vds.read_int32()
+        d.update(parse_BlockLocator(vds))
+      elif type == "cscript":
+        d['scriptHash'] = kds.read_bytes(20)
+        d['script'] = vds.read_bytes(vds.read_compact_size())
       else:
-        print "Unknown key type: "+type
-      
+        print "Skipping item of type "+type
+        continue
+
       item_callback(type, d)
 
     except Exception, e:
       print("ERROR parsing wallet.dat, type %s"%type)
       print("key data in hex: %s"%key.encode('hex_codec'))
       print("value data in hex: %s"%value.encode('hex_codec'))
-  
+
 def update_wallet(db, type, data):
   """Write a single item to the wallet.
   db must be open with writable=True.
@@ -132,6 +154,16 @@ def update_wallet(db, type, data):
       vds.write_int64(d['created'])
       vds.write_int64(d['expires'])
       vds.write_string(d['comment'])
+    elif type == "ckey":
+      kds.write_string(d['public_key'])
+      kds.write_string(d['crypted_key'])
+    elif type == "mkey":
+      kds.write_int32(d['nID'])
+      vds.write_string(d['crypted_key'])
+      vds.write_string(d['salt'])
+      vds.write_int32(d['nDeriveIterations'])
+      vds.write_int32(d['nDerivationMethod'])
+      vds.write_string(d['vchOtherDerivationParameters'])
     elif type == "defaultkey":
       vds.write_string(d['key'])
     elif type == "pool":
@@ -151,6 +183,11 @@ def update_wallet(db, type, data):
       vds.write_int64(d['nTime'])
       vds.write_string(d['otherAccount'])
       vds.write_string(d['comment'])
+    elif type == "bestblock":
+      vds.write_int32(d['nVersion'])
+      vds.write_compact_size(len(d['hashes']))
+      for h in d['hashes']:
+        vds.write(h)
     else:
       print "Unknown key type: "+type
 
@@ -174,6 +211,8 @@ def dump_wallet(db_env, print_wallet, print_wallet_transactions, transaction_fil
       transaction_index[d['tx_id']] = d
     elif type == "key":
       owner_keys[public_key_to_bc_address(d['public_key'])] = d['private_key']
+    elif type == "ckey":
+      owner_keys[public_key_to_bc_address(d['public_key'])] = d['crypted_key']
 
     if not print_wallet:
       return
@@ -190,8 +229,16 @@ def dump_wallet(db_env, print_wallet, print_wallet_transactions, transaction_fil
             ": PriKey "+ short_hex(d['private_key']))
     elif type == "wkey":
       print("WPubKey 0x"+ short_hex(d['public_key']) + " " + public_key_to_bc_address(d['public_key']) +
-            ": WPriKey 0x"+ short_hex(d['private_key']))
+            ": WPriKey 0x"+ short_hex(d['crypted_key']))
       print(" Created: "+time.ctime(d['created'])+" Expires: "+time.ctime(d['expires'])+" Comment: "+d['comment'])
+    elif type == "ckey":
+      print("PubKey "+ short_hex(d['public_key']) + " " + public_key_to_bc_address(d['public_key']) +
+            ": Encrypted PriKey "+ short_hex(d['crypted_key']))
+    elif type == "mkey":
+      print("Master Key %d"%(d['nID']) + ": 0x"+ short_hex(d['crypted_key']) +
+            ", Salt: 0x"+ short_hex(d['salt']) +
+            ". Passphrase hashed %d times with method %d with other parameters 0x"%(d['nDeriveIterations'], d['nDerivationMethod']) +
+            long_hex(d['vchOtherDerivationParameters']))
     elif type == "defaultkey":
       print("Default Key: 0x"+ short_hex(d['key']) + " " + public_key_to_bc_address(d['key']))
     elif type == "pool":
@@ -201,6 +248,10 @@ def dump_wallet(db_env, print_wallet, print_wallet_transactions, transaction_fil
     elif type == "acentry":
       print("Move '%s' %d (other: '%s', time: %s, entry %d) %s"%
             (d['account'], d['nCreditDebit'], d['otherAccount'], time.ctime(d['nTime']), d['n'], d['comment']))
+    elif type == "bestblock":
+      print deserialize_BlockLocator(d)
+    elif type == "cscript":
+      print("CScript: %s : %s"%(public_key_to_bc_address(d['scriptHash'], "\x01"), long_hex(d['script'])))
     else:
       print "Unknown key type: "+type
 
@@ -274,12 +325,12 @@ def trim_wallet(db_env, destFileName, pre_put_callback=None):
      before calling this.
   """
   db = open_wallet(db_env)
-  
+
   pubkeys = []
   def gather_pubkeys(type, d):
     if type == "name":
       pubkeys.append(bc_address_to_hash_160(d['hash']))
-  
+
   parse_wallet(db, gather_pubkeys)
 
   db_out = DB(db_env)
@@ -296,7 +347,7 @@ def trim_wallet(db_env, destFileName, pre_put_callback=None):
     should_write = False
     if type in [ 'version', 'name', 'acc' ]:
       should_write = True
-    if type in [ 'key', 'wkey' ] and hash_160(d['public_key']) in pubkeys:
+    if type in [ 'key', 'wkey', 'ckey' ] and hash_160(d['public_key']) in pubkeys:
       should_write = True
     if pre_put_callback is not None:
       should_write = pre_put_callback(type, d, pubkeys)
