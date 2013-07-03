@@ -9,8 +9,7 @@ import sys
 from address import dump_addresses
 from wallet import dump_wallet, dump_accounts
 from blkindex import dump_blkindex_summary
-from transaction import dump_transaction
-from transaction import dump_all_transactions
+from transaction import dump_transaction, dump_all_transactions
 from block import dump_block, dump_block_n, search_blocks, check_block_chain
 from util import determine_db_dir, create_env
 
@@ -41,6 +40,11 @@ def main():
                     help="Dump a single block, given its hex hash (or abbreviated hex hash) OR block height")
   parser.add_option("--search-blocks", action="store", dest="search_blocks", default=None,
                     help="Search the block chain for blocks containing given regex pattern")
+  parser.add_option("--print-raw-tx", action="store_true", dest="print_raw_tx", default=False,
+                    help="When dumping a block, print raw, hexadecimal transaction data for every transaction, in the same format that getmemorypool uses")
+  parser.add_option("--print-json", action="store_true", dest="print_json", default=False,
+                    help="When dumping a block, output it in JSON format (like output of RPC commands)")
+
   (options, args) = parser.parse_args()
 
   if options.datadir is None:
@@ -80,11 +84,11 @@ def main():
   if options.dump_block is not None:
     if len(options.dump_block) < 7: # Probably an integer...
       try:
-        dump_block_n(db_dir, db_env, int(options.dump_block))
+        dump_block_n(db_dir, db_env, int(options.dump_block), options.print_raw_tx, options.print_json)
       except ValueError:
-        dump_block(db_dir, db_env, options.dump_block)
+        dump_block(db_dir, db_env, options.dump_block, options.print_raw_tx, options.print_json)
     else:
-      dump_block(db_dir, db_env, options.dump_block)
+      dump_block(db_dir, db_env, options.dump_block, options.print_raw_tx, options.print_json)
 
   if options.search_blocks is not None:
     search_blocks(db_dir, db_env, options.search_blocks)
