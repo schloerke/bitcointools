@@ -218,10 +218,10 @@ def script_GetOp(bytes):
         nSize = ord(bytes[i])
         i += 1
       elif opcode == opcodes.OP_PUSHDATA2:
-        nSize = unpack_from('<H', bytes, i)
+        (nSize,) = struct.unpack_from('<H', bytes, i)
         i += 2
       elif opcode == opcodes.OP_PUSHDATA4:
-        nSize = unpack_from('<I', bytes, i)
+        (nSize,) = struct.unpack_from('<I', bytes, i)
         i += 4
       vch = bytes[i:i+nSize]
       i += nSize
