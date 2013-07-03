@@ -31,18 +31,29 @@ def _read_CDiskTxPos(stream):
   n_tx_pos = stream.read_uint32()
   return (n_file, n_block_pos, n_tx_pos)
 
-def _dump_block(datadir, nFile, nBlockPos, hash256, hashNext, do_print=True):
+def _dump_block(datadir, nFile, nBlockPos, hash256, hashNext, do_print=True, print_raw_tx=False, print_json=False):
   blockfile = open(os.path.join(datadir, "blk%04d.dat"%(nFile,)), "rb")
   ds = BCDataStream()
   ds.map_file(blockfile, nBlockPos)
   d = parse_Block(ds)
-  block_string = deserialize_Block(d)
+  block_string = deserialize_Block(d, print_raw_tx)
   ds.close_file()
   blockfile.close()
   if do_print:
     print "BLOCK "+long_hex(hash256[::-1])
     print "Next block: "+long_hex(hashNext[::-1])
     print block_string
+  elif print_json:
+    import json
+    print json.dumps({
+                        'version': d['version'],
+                        'previousblockhash': d['hashPrev'][::-1].encode('hex'),
+                        'transactions' : [ tx_hex['__data__'].encode('hex') for tx_hex in d['transactions'] ],
+                        'time' : d['nTime'],
+                        'bits' : hex(d['nBits']).lstrip("0x"),
+                        'nonce' : d['nNonce']
+                      })
+
   return block_string
 
 def _parse_block_index(vds):
@@ -64,7 +75,7 @@ def _parse_block_index(vds):
   d['__header__'] = vds.input[header_start:header_end]
   return d
 
-def dump_block(datadir, db_env, block_hash):
+def dump_block(datadir, db_env, block_hash, print_raw_tx=False, print_json=False):
   """ Dump a block, given hexadecimal hash-- either the full hash
       OR a short_hex version of the it.
   """
@@ -89,8 +100,11 @@ def dump_block(datadir, db_env, block_hash):
     block_data = _parse_block_index(vds)
 
     if (hash_hex.startswith(block_hash) or short_hex(hash256[::-1]).startswith(block_hash)):
-      print "Block height: "+str(block_data['nHeight'])
-      _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'], hash256, block_data['hashNext'])
+      if print_json == False:
+          print "Block height: "+str(block_data['nHeight'])
+          _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'], hash256, block_data['hashNext'], print_raw_tx=print_raw_tx)
+      else:
+          _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'], hash256, block_data['hashNext'], print_json=print_json, do_print=False)
 
     (key, value) = cursor.next()
 
@@ -115,7 +129,7 @@ def scan_blocks(datadir, db_env, callback_fn):
 
   kds = BCDataStream()
   vds = BCDataStream()
-  
+
   # Read the hashBestChain record:
   cursor = db.cursor()
   (key, value) = cursor.set_range("\x0dhashBestChain")
@@ -131,7 +145,7 @@ def scan_blocks(datadir, db_env, callback_fn):
   return block_data
 
 
-def dump_block_n(datadir, db_env, block_number):
+def dump_block_n(datadir, db_env, block_number, print_raw_tx=False, print_json=False):
   """ Dump a block given block number (== height, genesis block is 0)
   """
   def scan_callback(block_data):
@@ -139,8 +153,11 @@ def dump_block_n(datadir, db_env, block_number):
 
   block_data = scan_blocks(datadir, db_env, scan_callback)
 
-  print "Block height: "+str(block_data['nHeight'])
-  _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'], block_data['hash256'], block_data['hashNext'])
+  if print_json == False:
+    print "Block height: "+str(block_data['nHeight'])
+    _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'], block_data['hash256'], block_data['hashNext'], print_raw_tx=print_raw_tx, print_json=print_json)
+  else:
+    _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'], block_data['hash256'], block_data['hashNext'], do_print=False, print_raw_tx=print_raw_tx, print_json=print_json)
 
 def search_blocks(datadir, db_env, pattern):
   """ Dump a block given block number (== height, genesis block is 0)
@@ -148,7 +165,7 @@ def search_blocks(datadir, db_env, pattern):
   db = _open_blkindex(db_env)
   kds = BCDataStream()
   vds = BCDataStream()
-  
+
   # Read the hashBestChain record:
   cursor = db.cursor()
   (key, value) = cursor.set_range("\x0dhashBestChain")
@@ -163,7 +180,7 @@ def search_blocks(datadir, db_env, pattern):
   while True:
     block_string = _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'],
                                block_data['hash256'], block_data['hashNext'], False)
-    
+
     if re.search(pattern, block_string) is not None:
       print "MATCH: Block height: "+str(block_data['nHeight'])
       print block_string
@@ -171,13 +188,13 @@ def search_blocks(datadir, db_env, pattern):
     if block_data['nHeight'] == 0:
       break
     block_data = read_block(cursor, block_data['hashPrev'])
-    
+
 def search_odd_scripts(datadir, cursor, block_data):
   """ Look for non-standard transactions """
   while True:
     block_string = _dump_block(datadir, block_data['nFile'], block_data['nBlockPos'],
                                block_data['hash256'], block_data['hashNext'], False)
-    
+
     found_nonstandard = False
     for m in re.finditer(r'TxIn:(.*?)$', block_string, re.MULTILINE):
       s = m.group(1)
@@ -203,14 +220,14 @@ def search_odd_scripts(datadir, cursor, block_data):
     if block_data['nHeight'] == 0:
       break
     block_data = read_block(cursor, block_data['hashPrev'])
-  
+
 def check_block_chain(db_env):
   """ Make sure hashPrev/hashNext pointers are consistent through block chain """
   db = _open_blkindex(db_env)
 
   kds = BCDataStream()
   vds = BCDataStream()
-  
+
   # Read the hashBestChain record:
   cursor = db.cursor()
   (key, value) = cursor.set_range("\x0dhashBestChain")
@@ -227,7 +244,7 @@ def check_block_chain(db_env):
 
   back_blocks.append( (block_data['nHeight'], block_data['hashMerkle'], block_data['hashPrev'], block_data['hashNext']) )
   genesis_block = block_data
-  
+
   print("check block chain: genesis block merkle hash is: %s"%(block_data['hashMerkle'][::-1].encode('hex_codec')))
 
   while block_data['hashNext'] != ('\0'*32):
@@ -238,3 +255,22 @@ def check_block_chain(db_env):
       print(" Forward: "+str(forward))
       print(" Back: "+str(back))
     block_data = read_block(cursor, block_data['hashNext'])
+
+class CachedBlockFile(object):
+  def __init__(self, db_dir):
+    self.datastream = None
+    self.file = None
+    self.n = None
+    self.db_dir = db_dir
+
+  def get_stream(self, n):
+    if self.n == n:
+      return self.datastream
+    if self.datastream is not None:
+      self.datastream.close_file()
+      self.file.close()
+    self.n = n
+    self.file = open(os.path.join(self.db_dir, "blk%04d.dat"%(n,)), "rb")
+    self.datastream = BCDataStream()
+    self.datastream.map_file(self.file, 0)
+    return self.datastream
