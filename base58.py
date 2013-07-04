@@ -5,7 +5,6 @@
 import math
 import hashlib
 hashlib.new('ripemd160')
-have_crypto = True
 
 __b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 __b58base = len(__b58chars)
@@ -60,8 +59,6 @@ def b58decode(v, length):
   return result
 
 def hash_160(public_key):
-  if not have_crypto:
-    return ''
   h1 = hashlib.sha256(public_key).digest()
   r160 = hashlib.new('ripemd160')
   r160.update(h1)
@@ -69,14 +66,12 @@ def hash_160(public_key):
   return h2
 
 def public_key_to_bc_address(public_key, version="\x00"):
-  if not have_crypto or public_key is None:
+  if public_key is None:
     return ''
   h160 = hash_160(public_key)
   return hash_160_to_bc_address(h160, version=version)
 
 def hash_160_to_bc_address(h160, version="\x00"):
-  if not have_crypto:
-    return ''
   vh160 = version+h160
   h3=hashlib.sha256(hashlib.sha256(vh160).digest()).digest()
   addr=vh160+h3[0:4]
