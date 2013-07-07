@@ -70,17 +70,23 @@ def dump_transaction(datadir, db_env, tx_id):
 
   db.close()
 
+
+def parse_block_from_block_data(datadir, block_data):
+    blockfile = open(os.path.join(datadir, "blk%04d.dat"%(block_data['nFile'],)), "rb")
+
+    ds = BCDataStream()
+    ds.map_file(blockfile, block_data['nBlockPos'])
+    data = parse_Block(ds)
+    ds.close_file()
+
+    return data
 def dump_all_transactions(datadir, db_env):
   """ Dump all transactions.
   """
   def for_each_block(block_data):
     try:
-      blockfile = open(os.path.join(datadir, "blk%04d.dat"%(block_data['nFile'],)), "rb")
+      data = parse_block_from_block_data(datadir, block_data)
 
-      ds = BCDataStream()
-      ds.map_file(blockfile, block_data['nBlockPos'])
-
-      data = parse_Block(ds)
       block_datetime = datetime.fromtimestamp(data['nTime'])
       dt = "%d-%02d-%02d-%02d-%02d-%02d"%(block_datetime.year, block_datetime.month, block_datetime.day, block_datetime.hour, block_datetime.minute, block_datetime.second)
       for txn in data['transactions']:
