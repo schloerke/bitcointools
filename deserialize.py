@@ -354,7 +354,9 @@ def extract_public_key(bytes):
   ]
   for match in multisigs:
     if match_decoded(decoded, match):
-      return "["+','.join([public_key_to_bc_address(decoded[i][1]) for i in range(1,len(decoded)-2)])+"]"
+      decoded = [public_key_to_bc_address(decoded[i][1]) for i in range(1,len(decoded)-2)]
+      decoded.sort()
+      return "["+','.join(decoded)+"]"
 
   # BIP16 TxOuts look like:
   # HASH160 20 BYTES:... EQUAL
@@ -362,4 +364,5 @@ def extract_public_key(bytes):
   if match_decoded(decoded, match):
     return hash_160_to_bc_address(decoded[1][1], version="\x05")
 
+  # raise Exception("extract_public_key_fail")
   return "(None)"
