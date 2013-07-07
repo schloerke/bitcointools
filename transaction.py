@@ -80,6 +80,56 @@ def parse_block_from_block_data(datadir, block_data):
     ds.close_file()
 
     return data
+
+def find_address_from_previous_txn(datadir, db_env, txnHash, txnOutPos):
+
+  db = DB(db_env)
+  try:
+    r = db.open("blkindex.dat", "main", DB_BTREE, DB_THREAD|DB_RDONLY)
+  except DBError:
+    r = True
+
+  if r is not None:
+    logging.error("Couldn't open blkindex.dat/main.  Try quitting any running Bitcoin apps.")
+    sys.exit(1)
+
+  kds = BCDataStream()
+  vds = BCDataStream()
+
+  n_tx = 0
+  n_blockindex = 0
+
+  key_prefix = "\x02tx"+(txnHash[-4:].decode('hex_codec')[::-1])
+  cursor = db.cursor()
+  (key, value) = cursor.set_range(key_prefix)
+
+  while key.startswith(key_prefix):
+    kds.clear(); kds.write(key)
+    vds.clear(); vds.write(value)
+
+    type = kds.read_string()
+    hash256 = (kds.read_bytes(32))
+    hash_hex = long_hex(hash256[::-1])
+    version = vds.read_uint32()
+    tx_pos = _read_CDiskTxPos(vds)
+    if (hash_hex.startswith(txnHash) or short_hex(hash256[::-1]).startswith(txnHash)):
+      blockfile = open(os.path.join(datadir, "blk%04d.dat"%(tx_pos[0],)), "rb")
+      ds        = BCDataStream()
+      ds.map_file(blockfile, tx_pos[2])
+      txn = parse_Transaction(ds)
+      txOuts = txn['txOut']
+      txOut = txOuts[txnOutPos]
+
+      db.close()
+      return extract_public_key(txOut['scriptPubKey'])
+
+
+    (key, value) = cursor.next()
+
+  db.close()
+  return "(None)"
+
+
 def dump_all_transactions(datadir, db_env):
   """ Dump all transactions.
   """
