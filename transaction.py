@@ -151,7 +151,7 @@ def dump_all_transactions(datadir, db_env):
           for txIn in txn['txIn']:
             try:
               if txIn['prevout_hash'] == "\x00"*32:
-                print 'in\t' + txn['hash'] + '\tcoinbase\t' + dt
+                print 'in\t' + txn['hash'] + '\tcoinbase\t' + dt + '\t' + str(blockHeight)
               else:
                 pk = extract_public_key(txIn['scriptSig'])
 
