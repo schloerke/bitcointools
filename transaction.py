@@ -198,6 +198,13 @@ def dump_all_transactions(datadir, db_env):
 
     return True
 
+  # for i in []:
+  #   def scan_callback(block_data):
+  #     return not block_data['nHeight'] == i
+
+  #   block_data = scan_blocks(datadir, db_env, scan_callback)
+  #   for_each_block(block_data)
+
   scan_blocks(datadir, db_env, for_each_block)
   db_env.close()
 
