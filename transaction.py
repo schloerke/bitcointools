@@ -130,6 +130,10 @@ def find_address_from_previous_txn(datadir, db_env, txnHash, txnOutPos):
   return "(None)"
 
 
+def make_none_public_key_from_txn(txnHash, n):
+  return "None_" + str(txnHash) + "_" + str(n)
+
+
 def dump_all_transactions(datadir, db_env):
   """ Dump all transactions.
   """
