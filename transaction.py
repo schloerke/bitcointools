@@ -143,6 +143,9 @@ def dump_all_transactions(datadir, db_env):
 
       block_datetime = datetime.fromtimestamp(data['nTime'])
       dt = "%d-%02d-%02d-%02d-%02d-%02d"%(block_datetime.year, block_datetime.month, block_datetime.day, block_datetime.hour, block_datetime.minute, block_datetime.second)
+
+      blockHeight = block_data['nHeight']
+
       for txn in data['transactions']:
         try:
           for txIn in txn['txIn']:
@@ -151,23 +154,45 @@ def dump_all_transactions(datadir, db_env):
                 print 'in\t' + txn['hash'] + '\tcoinbase\t' + dt
               else:
                 pk = extract_public_key(txIn['scriptSig'])
-                print 'in\t' + txn['hash'] + '\t' + long_hex(txIn['prevout_hash'][::-1]) + '\t' + str(txIn['prevout_n']) + '\t' + pk + '\t' + dt + '\t' + str(block_data['nHeight'])
+
+                txnHash = long_hex(txIn['prevout_hash'][::-1])
+                txnPrevOutN = txIn['prevout_n']
+
+                if pk == "(None)":
+                  pk = find_address_from_previous_txn(datadir, db_env, txnHash, txnPrevOutN)
+
+                  if pk == "(None)":
+                    pk = make_none_public_key_from_txn(txnHash, txnPrevOutN)
+
+                print 'in\t' + txn['hash'] + '\t' + str(txnHash) + '\t' + str(txnPrevOutN) + '\t' + pk + '\t' + dt + '\t' + str(blockHeight)
+
             except Exception, err:
-              print 'error_txIn\t' + str(block_data['nHeight']) + '\t' + str(err) + '\t' + str(txIn) + '\t' + str(txn)
-          index = 0
+              txInKeyDecoded = [ x for x in script_GetOp(txIn['scriptSig']) ]
+              txkeytxt = "["+','.join([public_key_to_bc_address(txInKeyDecoded[i][1]) for i in range(1,len(txInKeyDecoded)-2)])+"]"
+
+
+              print 'error_txIn\t' + str(blockHeight) + '\t' + str(err) + '\t' + str(txInKeyDecoded) + '\t' + str(txkeytxt) + '\t' + str(txIn) + '\t' + str(txn)
+          txnOutN = 0
           for txOut in txn['txOut']:
             try:
               pk = extract_public_key(txOut['scriptPubKey'])
-              # txOutKeyDecoded = [ x for x in script_GetOp(bytes) ]
-              print 'out\t' + txn['hash'] + '\t' + str(index) + '\t' + pk + '\t' + str(txOut['value']/1.0e8) + '\t' + dt + '\t' + str(block_data['nHeight'])
-            except Exception, err:
-              print 'error_txOut\t' + str(block_data['nHeight']) + '\t' + str(err) + '\t' + str(txOut) + '\t' + str(txn)
+              txnHash = txn['hash']
 
-            index += 1
+              if pk == "(None)":
+                pk = make_none_public_key_from_txn(txnHash, txnOutN)
+              # txOutKeyDecoded = [ x for x in script_GetOp(bytes) ]
+
+              print 'out\t' + txnHash + '\t' + str(txnOutN) + '\t' + pk + '\t' + str(txOut['value']/1.0e8) + '\t' + dt + '\t' + str(blockHeight)
+
+            except Exception, err:
+              print 'error_txOut\t' + str(blockHeight) + '\t' + str(err) + '\t' + str(txOut) + '\t' + str(txn)
+
+
+            txnOutN += 1
 
         except Exception, err:
-          print 'error\t' + str(block_data['nHeight']) + '\t' + str(err) + '\t' + str(txn)
-          pass
+          print 'error\t' + str(blockHeight) + '\t' + str(err) + '\t' + str(txn)
+
     except Exception, err:
         print 'error_block\t' + str(block_data['nHeight'])  + '\t' + str(err)
 
