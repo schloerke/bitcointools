@@ -326,15 +326,35 @@ def extract_public_key(bytes):
     return hash_160_to_bc_address(decoded[2][1])
 
   # BIP11 TxOuts look like one of these:
-  # Note that match_decoded is dumb, so OP_1 actually matches OP_1/2/3/etc:
   multisigs = [
-    [ opcodes.OP_1, opcodes.OP_PUSHDATA4, opcodes.OP_1, opcodes.OP_CHECKMULTISIG ],
-    [ opcodes.OP_2, opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4, opcodes.OP_2, opcodes.OP_CHECKMULTISIG ],
-    [ opcodes.OP_3, opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4, opcodes.OP_3, opcodes.OP_CHECKMULTISIG ]
+    [ opcodes.OP_1,
+      opcodes.OP_PUSHDATA4,
+      opcodes.OP_1, opcodes.OP_CHECKMULTISIG
+    ],
+    [ opcodes.OP_1,
+      opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4,
+      opcodes.OP_2, opcodes.OP_CHECKMULTISIG
+    ],
+    [ opcodes.OP_2,
+      opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4,
+      opcodes.OP_2, opcodes.OP_CHECKMULTISIG
+    ],
+    [ opcodes.OP_1,
+      opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4,
+      opcodes.OP_3, opcodes.OP_CHECKMULTISIG
+    ],
+    [ opcodes.OP_2,
+      opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4,
+      opcodes.OP_3, opcodes.OP_CHECKMULTISIG
+    ],
+    [ opcodes.OP_3,
+      opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4,
+      opcodes.OP_3, opcodes.OP_CHECKMULTISIG
+    ]
   ]
   for match in multisigs:
     if match_decoded(decoded, match):
-      return "["+','.join([public_key_to_bc_address(decoded[i][1]) for i in range(1,len(decoded)-1)])+"]"
+      return "["+','.join([public_key_to_bc_address(decoded[i][1]) for i in range(1,len(decoded)-2)])+"]"
 
   # BIP16 TxOuts look like:
   # HASH160 20 BYTES:... EQUAL
