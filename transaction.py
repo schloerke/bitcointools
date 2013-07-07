@@ -168,7 +168,7 @@ def dump_all_transactions(datadir, db_env):
 
             except Exception, err:
               txInKeyDecoded = [ x for x in script_GetOp(txIn['scriptSig']) ]
-              txkeytxt = "["+','.join([public_key_to_bc_address(txInKeyDecoded[i][1]) for i in range(1,len(txInKeyDecoded)-2)])+"]"
+              txkeytxt = "["+','.join([public_key_to_bc_address(txInKeyDecoded[i][1]) for i in range(0,len(txInKeyDecoded))])+"]"
 
 
               print 'error_txIn\t' + str(blockHeight) + '\t' + str(err) + '\t' + str(txInKeyDecoded) + '\t' + str(txkeytxt) + '\t' + str(txIn) + '\t' + str(txn)
