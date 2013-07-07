@@ -155,16 +155,16 @@ def dump_all_transactions(datadir, db_env):
               else:
                 pk = extract_public_key(txIn['scriptSig'])
 
-                txnHash = long_hex(txIn['prevout_hash'][::-1])
+                txnPrevHash = long_hex(txIn['prevout_hash'][::-1])
                 txnPrevOutN = txIn['prevout_n']
 
                 if pk == "(None)":
-                  pk = find_address_from_previous_txn(datadir, db_env, txnHash, txnPrevOutN)
+                  pk = find_address_from_previous_txn(datadir, db_env, txnPrevHash, txnPrevOutN)
 
                   if pk == "(None)":
-                    pk = make_none_public_key_from_txn(txnHash, txnPrevOutN)
+                    pk = make_none_public_key_from_txn(txnPrevHash, txnPrevOutN)
 
-                print 'in\t' + txn['hash'] + '\t' + str(txnHash) + '\t' + str(txnPrevOutN) + '\t' + pk + '\t' + dt + '\t' + str(blockHeight)
+                print 'in\t' + txn['hash'] + '\t' + str(txnPrevHash) + '\t' + str(txnPrevOutN) + '\t' + pk + '\t' + dt + '\t' + str(blockHeight)
 
             except Exception, err:
               txInKeyDecoded = [ x for x in script_GetOp(txIn['scriptSig']) ]
